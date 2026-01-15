@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-vertex-ai-mastermind",
+  "name": "Vertex AI Mastermind",
+  "version": "0.0.1",
+  "minAppVersion": "0.15.0",
+  "description": "Powerful Vertex AI assistant with full vault context.",
+  "author": "Antigravity",
+  "authorUrl": "https://github.com/BitNorth-Digital/obsidian-vertex-ai-plugin",
+  "isDesktopOnly": false
+}
