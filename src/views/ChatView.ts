@@ -46,26 +46,19 @@ export class MastermindChatView extends ItemView {
     // User said "Gui should be in the settings panel too...". It implies it can remain here.
     // "Remove the background from the top bar".
 
-    // Model Picker (Revived as Dropdown)
+    // Model Indicator (Static Label - Clicking opens Settings)
     const modelContainer = this.toolbarEl.createDiv('model-picker-container');
-    const modelSelect = modelContainer.createEl('select', { cls: 'model-picker' });
+    const modelLabel = modelContainer.createEl('span', { cls: 'model-indicator' });
+    modelLabel.innerText = this.plugin.settings.modelId || 'gemini-3-pro-preview';
+    modelLabel.title = "Current Model (Click to Settings)";
 
-    // Ensure sync with main.ts state
-    const options = this.plugin.settings.availableModels.length > 0
-      ? this.plugin.settings.availableModels
-      : [this.plugin.settings.modelId, 'gemini-3.0-pro-preview-001', 'gemini-2.5-pro', 'gemini-1.5-pro'];
-
-    // Deduplicate
-    [...new Set(options)].forEach(m => {
-      const opt = modelSelect.createEl('option', { value: m, text: m });
-      if (m === this.plugin.settings.modelId) opt.selected = true;
-    });
-
-    modelSelect.addEventListener('change', async () => {
-      this.plugin.settings.modelId = modelSelect.value;
-      await this.plugin.saveSettings();
-      new Notice(`Switched to ${modelSelect.value}`);
-    });
+    // Clicking the model name opens settings directly
+    modelLabel.onclick = () => {
+      // @ts-ignore
+      this.app.setting.open();
+      // @ts-ignore
+      this.app.setting.openTabById(this.plugin.manifest.id);
+    };
 
     // ACTION BUTTONS CONTAINER
     const actionsDiv = this.toolbarEl.createDiv({ cls: 'toolbar-actions' });
@@ -149,10 +142,17 @@ export class MastermindChatView extends ItemView {
       }
     });
 
+    this.inputEl.addEventListener('input', () => {
+      this.inputEl.style.height = 'auto'; // Reset
+      this.inputEl.style.height = `${this.inputEl.scrollHeight}px`; // Expand
+    });
+
     this.inputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.handleSendMessage();
+        // Reset height after send
+        this.inputEl.style.height = 'auto';
       }
     });
 

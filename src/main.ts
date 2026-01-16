@@ -25,7 +25,7 @@ const DEFAULT_SETTINGS: MastermindSettings = {
   profilePictureAI: 'https://api.dicebear.com/7.x/bottts/svg?seed=Mastermind',
   customContextPrompt: '',
   confirmDestructive: false,
-  defaultModel: 'gemini-3.0-pro-preview-001', // Precise ID
+  defaultModel: 'gemini-3-pro-preview',
   availableModels: []
 }
 

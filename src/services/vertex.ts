@@ -147,32 +147,24 @@ export class VertexService {
 
     // Comprehensive Fallback List (Google Gemini 3.0, 2.5, 1.5, 1.0)
     // Updated: 2026-01-15
+    // Comprehensive Fallback List (Google Gemini 3.0, 2.5, 1.5, 1.0)
+    // Updated: 2026-01-15 - Confirmed IDs
     const FALLBACK_MODELS = [
-      // Gemini 3.0 (Preview/Latest)
-      'gemini-3.0-pro-preview-001',
-      'gemini-3.0-flash-preview-001',
-      'gemini-3.0-pro', // Alias often used
-      'gemini-3.0-flash',
+      // Gemini 3.0 (Preview)
+      'gemini-3-pro-preview', // Correct ID
+      'gemini-3-flash-preview',
 
-      // Gemini 2.5
-      'gemini-2.5-pro',
-      'gemini-2.5-flash',
-      'gemini-2.5-flash-lite',
+      // Gemini 2.0 (Commonly cited)
+      'gemini-2.0-flash-exp',
 
-      // Gemini 2.0
-      'gemini-2.0-flash',
-      'gemini-2.0-flash-lite',
-
-      // Gemini 1.5 (Stable Workhorses)
-      'gemini-1.5-pro-002',
-      'gemini-1.5-flash-002',
+      // Gemini 1.5 (Stable)
       'gemini-1.5-pro',
       'gemini-1.5-flash',
-      'gemini-1.5-pro-preview-0409',
+      'gemini-1.5-pro-002',
+      'gemini-1.5-flash-002',
 
-      // Gemini 1.0 (Legacy)
-      'gemini-1.0-pro',
-      'gemini-1.0-pro-001'
+      // Legacy
+      'gemini-1.0-pro'
     ];
 
     try {
