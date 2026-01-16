@@ -185,4 +185,46 @@ export class VaultService {
     }
     return fileNames;
   }
+  async writeHistory(history: { role: string, parts: any[] }[], sessionId?: string): Promise<string> {
+    const historyFolder = 'Mastermind/History';
+    await this.ensureFoldersExist(historyFolder);
+
+    // If no session ID, generate a new one based on timestamp
+    let filename = sessionId;
+    if (!filename) {
+      const now = new Date();
+      filename = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+    }
+
+    // Ensure .md extension
+    if (!filename.endsWith('.md')) filename += '.md';
+
+    const path = `${historyFolder}/${filename}`;
+
+    // Format Content
+    let content = '# Mastermind Conversation\n\n';
+    history.forEach(msg => {
+      const role = msg.role === 'user' ? 'User' : 'Mastermind';
+      const text = msg.parts.map(p => p.text).join('\n');
+      content += `> **${role}**\n${text}\n\n`;
+    });
+    content += `\n*Auto-saved at ${new Date().toISOString()}*`;
+
+    // Write file (overwrite to update full history)
+    await this.createOrUpdateNote(path, content);
+
+    return filename.replace('.md', ''); // Return ID for persistence
+  }
+
+  // Improved Implementation: createOrUpdateNote
+  async createOrUpdateNote(path: string, content: string): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (file instanceof TFile) {
+      await this.app.vault.modify(file, content);
+    } else {
+      // Ensure folders (already handled by ensureFoldersExist usually, but safe to double check)
+      await this.ensureFoldersExist(path.substring(0, path.lastIndexOf('/')));
+      await this.app.vault.create(path, content);
+    }
+  }
 }

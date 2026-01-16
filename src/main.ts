@@ -25,7 +25,7 @@ const DEFAULT_SETTINGS: MastermindSettings = {
   profilePictureAI: 'https://api.dicebear.com/7.x/bottts/svg?seed=Mastermind',
   customContextPrompt: '',
   confirmDestructive: false,
-  defaultModel: 'gemini-3-pro-preview',
+  defaultModel: 'gemini-2.0-flash-exp', // Safe, widely available default
   availableModels: []
 }
 
@@ -192,7 +192,14 @@ class MastermindSettingTab extends PluginSettingTab {
     // Model Picker with Fetch
     new Setting(containerEl)
       .setName('Gemini Model')
-      .setDesc('Select the Vertex AI model to use. Click refresh to fetch from permissions.')
+      .setDesc('Enter a supported Model ID (e.g., gemini-1.5-pro, claude-3-opus) OR a numeric Vertex AI Endpoint ID for custom/Garden models.')
+      .addText(text => text
+        .setPlaceholder('gemini-2.0-flash-exp')
+        .setValue(this.plugin.settings.modelId)
+        .onChange(async (value) => {
+          this.plugin.settings.modelId = value;
+          await this.plugin.saveSettings();
+        }))
       .addDropdown(dropdown => {
         // Use cached models if available, else just current or default
         const options = this.plugin.settings.availableModels.length > 0
@@ -202,13 +209,22 @@ class MastermindSettingTab extends PluginSettingTab {
         // Deduplicate
         const uniqueOptions = [...new Set(options)];
 
+        // Add Fallback examples if empty/default
+        if (!this.plugin.settings.availableModels.length) {
+          uniqueOptions.push('claude-3-5-sonnet-v2@20241022', '1234567890 (Custom Endpoint)');
+        }
+
         uniqueOptions.forEach(m => dropdown.addOption(m, m));
 
-        dropdown.setValue(this.plugin.settings.modelId)
-          .onChange(async (value) => {
-            this.plugin.settings.modelId = value;
-            await this.plugin.saveSettings();
-          });
+        dropdown.setValue(this.plugin.settings.modelId);
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.modelId = value;
+          await this.plugin.saveSettings();
+          // Update text field to match
+          // @ts-ignore
+          const textComponent = containerEl.querySelector('input[type="text"]');
+          if (textComponent) textComponent.value = value;
+        });
         this.modelDropdown = dropdown;
       })
       .addExtraButton(btn => btn

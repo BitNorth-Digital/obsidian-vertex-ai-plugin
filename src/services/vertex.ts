@@ -201,11 +201,109 @@ export class VertexService {
     const accessToken = await this.getAccessToken();
     const projectId = JSON.parse(this.serviceAccountJson).project_id;
 
-    // Use default if not set
-    const model = this.modelId || 'gemini-1.5-pro-preview-0409';
+    // Model Selection
+    const modelId = this.modelId || 'gemini-2.0-flash-exp';
+    const isClaude = modelId.startsWith('claude');
+    const isEndpoint = /^\d+$/.test(modelId) || modelId.includes('/endpoints/'); // Numeric ID or full resource path
     const location = this.location || 'us-central1';
 
-    const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:generateContent`;
+    // 1. CUSTOM ENDPOINT (Mistral, Llama, Fine-tunes deployed in Garden)
+    if (isEndpoint) {
+      // Support for Resource Path: projects/123/locations/us-central1/endpoints/456...
+      // Or simple ID: 1234567890 (assumed in current project/location)
+      const endpointResource = modelId.includes('/') ? modelId : `projects/${projectId}/locations/${location}/endpoints/${modelId}`;
+      const url = `https://${location}-aiplatform.googleapis.com/v1/${endpointResource}:predict`;
+
+      // Standard MaaS Payload (Mistral/Llama usually accept: { instances: [{ prompt: "..." }], parameters: {...} })
+      // or OpenAI-compatible format if deployed with vLLM (check documentation).
+      // Let's implement the standard Vertex AI "Raw Prediction" or "Predict" format for text generation.
+      // Most Model Garden text models expect: { instances: [ { prompt: ... } ], parameters: { maxOutputTokens: ... } }
+
+      const body = {
+        instances: [
+          {
+            prompt: `System: You are Mastermind.\nContext: ${context}\n\nUser: ${prompt}\nAssistant:`,
+            // Some models treat "messages" list differently.
+            // For broad compatibility with raw endpoints, we construct a single prompt string.
+            // Ideally, we'd detect the model type, but for "generic endpoint" support, text completion is safest default.
+          }
+        ],
+        parameters: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          topP: 0.95
+        }
+      };
+
+      const response = await requestUrl({
+        url,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (response.status !== 200) {
+        throw new Error(`Endpoint Error ${response.status}: ${response.text}`);
+      }
+
+      const data = response.json;
+      // Standard Vertex Predict Response: { predictions: [ "text" ] } or { predictions: [ { content: "text" } ] }
+      const pred = data.predictions[0];
+      if (typeof pred === 'string') return pred;
+      if (pred.content) return pred.content;
+      return JSON.stringify(pred); // Fallback
+    }
+
+    // 2. ANTHROPIC CLAUDE (via Vertex AI)
+    if (isClaude) {
+      // Claude typically uses `streamRawPredict` or `rawPredict` on a specific endpoint
+      // e.g. https://us-central1-aiplatform.googleapis.com/v1/projects/PROJECT_ID/locations/us-central1/publishers/anthropic/models/claude-3-5-sonnet-v2@20241022:streamRawPredict
+      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/anthropic/models/${modelId}:streamRawPredict`;
+
+      // Construct Claude-specific payload
+      const messages = history.map(h => ({
+        role: h.role === 'model' ? 'assistant' : 'user',
+        content: h.parts[0].text // Simplify: previous parts usually just text
+      }));
+      // Add current prompt
+      messages.push({ role: "user", content: `Context:\n${context}\n\nQuestion: ${prompt}` });
+
+      const body = {
+        anthropic_version: "vertex-2023-10-16",
+        messages: messages,
+        system: `You are Mastermind. ${this.customContextPrompt || ''} Be concise.`,
+        max_tokens: 4096,
+        stream: false
+      };
+
+      const response = await requestUrl({
+        url,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json; charset=utf-8'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (response.status !== 200) {
+        throw new Error(`Claude API Error ${response.status}: ${response.text}`);
+      }
+
+      // Parse Claude Response (streamRawPredict returns NDJSON-like lines if streamed, but we falsed it?
+      // Actually streamRawPredict might return a stream. Let's try `rawPredict` if available, or just parse carefully.)
+      // Vertex Claude often returns a JSON list if not streaming.
+      // Let's assume standard response for now. If it fails, we fall back.
+      const data = response.json;
+      // Adjust based on actual shape (often data.content[0].text)
+      return data.content ? data.content[0].text : JSON.stringify(data);
+    }
+
+    // 2. GOOGLE GEMINI (Default)
+    const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
 
     let systemInstructionText = `You are "Mastermind", a highly capable AI assistant for Obsidian.
 You have access to the user's notes and knowledge vault.

@@ -49,7 +49,7 @@ export class MastermindChatView extends ItemView {
     // Model Indicator (Static Label - Clicking opens Settings)
     const modelContainer = this.toolbarEl.createDiv('model-picker-container');
     const modelLabel = modelContainer.createEl('span', { cls: 'model-indicator' });
-    modelLabel.innerText = this.plugin.settings.modelId || 'gemini-3-pro-preview';
+    modelLabel.innerText = this.plugin.settings.modelId || 'gemini-2.0-flash-exp';
     modelLabel.title = "Current Model (Click to Settings)";
 
     // Clicking the model name opens settings directly
@@ -234,6 +234,16 @@ export class MastermindChatView extends ItemView {
       }
 
       await this.plugin.saveSettings();
+
+      // Mastermind 3.0 Persistence: Auto-save to Markdown
+      // We use a sessionId if we had one, but `writeHistory` generates one if null.
+      // We should probably store sessionId in ChatView to keep writing to the same file during a session.
+      // For now, let's treat "one session = one view lifecycle" or similar.
+      // Let's store a sessionId property in the class.
+      // Cast to any to access the new method if types aren't updated yet (TS quirk)
+      const sessionId = await (this.vaultService as any).writeHistory(this.plugin.settings.history, (this as any).sessionId);
+      (this as any).sessionId = sessionId; // Store for next update
+
     } catch (error) {
       console.error('Mastermind Error:', error);
       thinkingContainer.remove();
