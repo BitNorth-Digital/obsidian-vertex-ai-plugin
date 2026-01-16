@@ -33,6 +33,44 @@ export default class MastermindPlugin extends Plugin {
     });
 
     this.addSettingTab(new MastermindSettingTab(this.app, this));
+
+    this.addCommand({
+      id: 'chat-active-note',
+      name: 'Chat with Active Note',
+      checkCallback: (checking: boolean) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file) {
+          if (!checking) {
+            this.activateView();
+            // Send a hidden signal or just open chat. Ideally we'd trigger a message.
+            // For now, we just open the view.
+          }
+          return true;
+        }
+        return false;
+      }
+    });
+
+    this.addCommand({
+      id: 'explain-selection',
+      name: 'Explain Selection',
+      editorCallback: async (editor, view) => {
+        const selection = editor.getSelection();
+        if (selection) {
+          await this.activateView();
+          // We need a way to pass this message to the view
+          const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_MASTERMIND);
+          if (leaves.length > 0) {
+            const view = leaves[0].view as MastermindChatView;
+            if (view) {
+              // Manually set input and trigger send
+              view.inputEl.value = `Explain this:\n> ${selection}`;
+              view.handleSendMessage();
+            }
+          }
+        }
+      }
+    });
   }
 
   async activateView() {

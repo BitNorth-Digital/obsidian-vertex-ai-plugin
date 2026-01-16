@@ -77,7 +77,7 @@ export class MastermindChatView extends ItemView {
     this.inputEl.value = '';
     this.appendMessage('user', message);
 
-    const loadingMsg = this.appendMessage('ai', 'Thinking...');
+    const loadingMsg = await this.appendMessage('ai', 'Thinking...');
 
     try {
       this.vertexService.updateSettings(this.plugin.settings);
@@ -111,20 +111,56 @@ export class MastermindChatView extends ItemView {
     }
   }
 
-  appendMessage(sender: 'user' | 'ai', text: string): HTMLElement {
+  async appendMessage(sender: 'user' | 'ai', text: string): Promise<HTMLElement> {
     const msgEl = this.messageContainer.createDiv(`chat-message message-${sender}`);
 
     if (sender === 'ai' && text !== 'Thinking...') {
+      // Smart Wikilinking
+      const linkedText = await this.processWikilinks(text);
+
       // Create a temporary component for markdown rendering
       const component = new Component();
       component.load();
-      MarkdownRenderer.render(this.app, text, msgEl, '', component);
+      MarkdownRenderer.render(this.app, linkedText, msgEl, '', component);
     } else {
       msgEl.innerText = text;
     }
 
     this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
     return msgEl;
+  }
+
+  async processWikilinks(text: string): Promise<string> {
+    const fileNames = await this.vaultService.getAllFileNames();
+
+    // Create a regex to find exact matches of filenames, avoiding already linked text
+    // This is a simplified approach; a full parser would be more robust but complex.
+    // We look for the filename as a whole word.
+
+    // Sort filenames by length (descending) to match longest titles first
+    const sortedNames = Array.from(fileNames).sort((a, b) => b.length - a.length);
+
+    let processedText = text;
+
+    for (const name of sortedNames) {
+      if (name.length < 3) continue; // Skip very short names to avoid false positives
+
+      // Regex explanation:
+      // (?<!\[\[) - Negative lookbehind: not preceded by [[
+      // \b - Word boundary
+      // (${escapeRegExp(name)}) - The filename
+      // \b - Word boundary
+      // (?!\]\]) - Negative lookahead: not followed by ]]
+      const regex = new RegExp(`(?<!\\[\\[)\\b(${this.escapeRegExp(name)})\\b(?!\\]\\])`, 'g');
+
+      processedText = processedText.replace(regex, '[[$1]]');
+    }
+
+    return processedText;
+  }
+
+  escapeRegExp(string: string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   async onClose() {

@@ -121,4 +121,15 @@ export class VaultService {
     const normalizedPath = path.endsWith('.md') ? path : `${path}.md`;
     await this.app.vault.create(normalizedPath, content);
   }
+
+  async getAllFileNames(): Promise<Set<string>> {
+    const files = this.app.vault.getMarkdownFiles();
+    const fileNames = new Set<string>();
+    for (const file of files) {
+      if (file.basename) {
+        fileNames.add(file.basename);
+      }
+    }
+    return fileNames;
+  }
 }
