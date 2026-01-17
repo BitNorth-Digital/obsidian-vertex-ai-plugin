@@ -32,4 +32,34 @@ fetch_web_article(url): To grab the content of an article, summarize it, and cre
 Multimodal Understanding: Evolve beyond text.
 Image Processing: Use vision models to describe images in your vault, making them searchable.
 Audio Transcription: Transcribe voice memos or meeting recordings attached to your notes, making their content accessible.
-By executing this strategy, I would evolve from a reactive assistant that manages files to a proactive, context-aware knowledge partner that helps you think, create, and connect ideas more effectively.
+
+## Status Update (2026-01-15) - Mastermind 2.0 Complete
+**Mastermind 2.2** is now live with the following features:
+-   **Conversation Persistence**: Auto-saves chat history to `Mastermind/History`.
+-   **Multi-Model Support**:
+    -   **Google**: Gemini 1.5, 2.0 Flash, 3.0 Pro.
+    -   **Anthropic**: Claude 3.5 Sonnet, Opus (via Vertex AI).
+    -   **Custom Endpoints**: Support for **Model Garden** deployments (Llama 3, Mistral) via generic Vertex AI Endpoint IDs.
+-   **UI Overhaul**: Transparent toolbar, auto-expanding input, model switcher with settings integration.
+
+---
+
+## Phase 4: Mastermind 3.0 (Cloud Orchestration & Local AI)
+The next major evolution focuses on "Multi-Provider" support and "Infrastructure-as-Code" from within Obsidian.
+
+### 1. Multi-Provider Architecture
+-   **Local AI**: Direct integration with **LM-Studio** (OpenAI-compatible) for offline/local inference.
+-   **Provider Switcher**: Seamlessly toggle between Cloud (Vertex AI) and Local (LM-Studio).
+
+### 2. Vertex AI Model Garden & Auto-Deploy
+-   **Model Browser**: A settings panel to fetch and browse available models from the Vertex AI Model Garden (Llama 3, Mistral, Gemma, etc.).
+-   **Auto-Deploy**: A "Spin Up" button that programmatically:
+    1.  Creates a Vertex AI Endpoint.
+    2.  Deploys the selected model to a new VM (n1-standard, etc.).
+    3.  Monitors the deployment status (LRO polling).
+    4.  Auto-configures the plugin to use the new endpoint.
+-   **Cost Management**: Explicit warnings before spinning up paid cloud resources.
+
+### 3. Context & Agentic Refinements
+-   **Session Management**: Improved handling of chat sessions vs linear history.
+-   **Tools 2.0**: Enhanced surgical file operations (`append_to_note`, `update_section`).
